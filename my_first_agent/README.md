@@ -7,16 +7,15 @@
 
 ### System Designer Name
 
-[Enter your name.]
-
+Ethan Arlow 
 
 ### System Name
 
-[Use a default name "HackTrack" or enter the name you choose for the system.]
+AttendEZ
 
 ### System Goal
-[Read Chapter 2 Section 2.1, then enter the well-structured goal of your agentic system]
+For CPVC, create a more accurate projected event attendance statistic, measured by attendance-to-registration  moving from 40% to 80$, without invading potential participants’ privacy and avoiding excessive communication.
 
 ### Who Is Better Off When This Works?
 
-[In one complete sentence, identify who will be better off when the system works.]
+The CPVC will benefit by having a more accurate projected event attendance statistic to use while planning their Hackathon event. 

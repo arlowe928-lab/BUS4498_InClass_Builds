@@ -8,15 +8,17 @@ This workflow supports the system goal defined in `my_first_agent/README.md`.
 
 ### 1.2 Workflow Trigger
 
-[Describe the event, request, schedule, or condition that starts the workflow.]
+A student fills out the attendance form and lists their email. 
 
 ### 1.3 Completion Condition at Runtime
 
-[Describe how the system knows, on any given run, that this workflow is completed.]
+The workflow is completed when the list of all non-responses has been sent to CPVC's director of outreach.  
 
 ### 1.4 General Workflow
 
-[Describe the overall sequence of tasks in one or two paragraphs. Explain the normal path first, followed by the most important exception paths and human-review points.]
+Exactly three days prior to the Hackathon start date, the system will send out a follow-up email to all current sign-ups. The email will ask one question: "Do you plan on attending CPVC's Upcoming Hackathon on [Insert Date, Insert Time, Insert Location]?" The system will continuously record the answers to this survey and use the data to create an infographic chart showing the number of people attending and the number of people no longer planning to attend. 
+
+One day before the start of a hackathon, the system will compile a list of all emails of students who have not responded and will send the list to CPVC's director of outreach. 
 
 ### 1.5 Workflow Diagram
 
@@ -24,10 +26,16 @@ This workflow supports the system goal defined in `my_first_agent/README.md`.
 
 ```mermaid
 flowchart TD
-    T1["T1: First task"] --> T2["T2: Second task"]
-    T2 --> D1{"Decision condition?"}
-    D1 -->|Yes| T3["T3: Next task"]
-    D1 -->|No| H1["Human review"]
-    H1 --> T3
-    T3 --> C1([C1: Completion state])
+    Trigger --> T1
+T1 --> T2
+T2 --> D1
+D1 -- "No response yet" --> D3
+D1 -- "Responded" --> D2
+D2 -- "Still attending" --> T3
+D2 -- "No longer attending" --> T3
+T3 --> D3
+D3 -- "Not yet one day before" --> T2
+D3 -- "One day before Hackathon" --> T4
+T4 --> T5
+T5 --> Completion
 ```

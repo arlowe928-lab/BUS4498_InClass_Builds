@@ -24,16 +24,20 @@ One day before the start of a hackathon, the system will compile a list of all e
 
 ```mermaid
 flowchart TD
-    Trigger --> T1
-T1 --> T2
-T2 --> D1
-D1 -- "No response yet" --> D3
-D1 -- "Responded" --> D2
-D2 -- "Still attending" --> T3
-D2 -- "No longer attending" --> T3
-T3 --> D3
-D3 -- "Not yet one day before" --> T2
-D3 -- "One day before Hackathon" --> T4
+Start(["Trigger: Hackathon start date scheduled"]) --> D1{"3 days before hackathon start date?"}
+D1 -->|"No"| D1
+D1 -->|"Yes"| T1["Send follow-up email to sign-ups"]
+T1 --> D2{"New response received?"}
+D2 -->|"Yes"| T2["Record survey response"]
+T2 --> D3{"Response indicates attending?"}
+D3 -->|"Yes"| T3["Increment attending count"]
+D3 -->|"No"| T4["Increment not-attending count"]
+T3 --> T5["Update infographic chart"]
 T4 --> T5
-T5 --> Completion
+T5 --> D4{"1 day before hackathon start date?"}
+D2 -->|"No"| D4
+D4 -->|"No"| D2
+D4 -->|"Yes"| T6["Compile non-responder email list"]
+T6 --> T7["Send non-responder list to Director of Outreach"]
+T7 --> End(["Completion: Non-responder list sent to Director of Outreach"])
 ```

@@ -24,7 +24,7 @@ One day before the start of a hackathon, the system will compile a list of all e
 
 ```mermaid
 flowchart TD
-Start(["Trigger: Hackathon start date scheduled"]) --> D1{"3 days before hackathon start date?"}
+Start(["Trigger: Hackathon start date scheduled"]) --> D1{"10 days before hackathon start date?"}
 D1 -->|"No"| D1
 D1 -->|"Yes"| T1["Send follow-up email to sign-ups"]
 T1 --> D2{"New response received?"}
@@ -34,7 +34,7 @@ D3 -->|"Yes"| T3["Increment attending count"]
 D3 -->|"No"| T4["Increment not-attending count"]
 T3 --> T5["Update infographic chart"]
 T4 --> T5
-T5 --> D4{"1 day before hackathon start date?"}
+T5 --> D4{"5 day before hackathon start date?"}
 D2 -->|"No"| D4
 D4 -->|"No"| D2
 D4 -->|"Yes"| T6["Compile non-responder email list"]

@@ -1,14 +1,11 @@
-# [Exact task name] Task Specification
+# Update Infographic Chart Task Specification
 
-*BUS 4498 Team Build Milestone 1. Create one copy for each L3 task. Save it in `our_team_agent/agent/task-specs/` in `BUS4498_Team_Build`. Use the task name in lowercase with hyphens between words; replace `&` with `and` and remove other punctuation.*
-
-*Keep the exact task ID and name from the workflow. Complete all six sections, including Tool Permissions and Boundaries. The reason for assigning L3 belongs only in the team worksheet. Replace prompts and remove template instructions before submitting. Tool scripts are not required.*
 
 ```yaml
 # BASIC INFORMATION
-task_id: "[Exact workflow task ID]"
-task_name: "[Exact workflow task name]"
-task_owner: "[Person or role accountable for this task]"
+task_id: "T4"
+task_name: "Update Infographic Chart"
+task_owner: "Director of Outreach"
 
 # Agent Inference Configuration
 Provider: [e.g., Groq, OpenAI, Claude, Google Gemini]
@@ -20,7 +17,7 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ## 1. Task Goal
 
-- **Objective:** [What business result should this task produce?]
+- **Objective:** The AI agent should continuously use the survey results to update an infographic chart showing the ratio of event attendees to no longer attending.    
 
 ## 2. Inbound Inputs
 
@@ -28,9 +25,9 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ### Input 1
 
-- **Input name:** [Short name.]
-- **What it contains:** [Information the agent receives, including required fields and format.]
-- **Source:** [Task ID and name, person, or other permitted source.]
+- **Input name:** Attending Survey Results 
+- **What it contains:** Results on whether or not students are still planning on attending the vibe coding event. 
+- **Source:** Google Forms
 
 ## 3. Tool Permissions and Boundaries
 
@@ -57,16 +54,43 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ## 4. How the Agent Should Reason
 
-*Define permitted kinds of work rather than a fixed sequence. The agent selects its next subtask using intermediate findings and may skip, repeat, or combine permitted subtasks within Section 3's limits. Individual subtasks do not all have to be L3. Copy the Permitted Subtask block as needed.*
-
 ### Permitted Subtask 1
 
-- **Subtask name:** [Use a verb-object name.]
-- **Subtask description:** [What information does it examine and what finding or intermediate result does it produce?]
-- **Subtask boundary:** [What may and may not be done, including prerequisites and required approval?]
-- **Retry limits:** [Maximum additional attempts after the initial attempt; 0 means no retries. Repetition must also stay within Section 3's limits.]
+* **Subtask name:** retrieve_survey_results
+* **Subtask description:** Examine the authorized Google Forms attendance responses for the specified vibe coding event. Identify the available attendance statuses, response timestamps, and any missing information needed to update the chart.
+* **Subtask boundary:** Read only the survey data authorized in Section 3. Do not modify responses, access unrelated surveys, or contact respondents. If the event or source cannot be identified, hand off to the Director of Outreach.
+* **Retry limits:** 1 additional attempt for a temporary retrieval failure, within Section 3’s limits.
 
-- **Decision guidance:** After each subtask, use its findings to select the permitted subtask most likely to resolve the most important remaining uncertainty. Do not follow a fixed sequence. If no permitted subtask can make useful progress, stop and hand the case to a person.
+### Permitted Subtask 2
+
+* **Subtask name:** validate_attendance_responses
+* **Subtask description:** Check responses for missing attendance selections, unsupported answers, and duplicate submissions. Produce a validated set of responses and identify unresolved records that could affect the totals.
+* **Subtask boundary:** Use only explicit survey answers. Apply the workflow’s approved duplicate-handling rule; if none exists and duplicates affect the totals, request human review. Do not infer attendance from missing responses or alter source records.
+* **Retry limits:** 1 additional attempt if refreshed data or an approved clarification becomes available within the same run.
+
+### Permitted Subtask 3
+
+* **Subtask name:** calculate_attendance_ratio
+* **Subtask description:** Count valid responses for “still attending” and “no longer attending.” Calculate the attending-to-no-longer-attending ratio and each category’s percentage of the combined valid total.
+* **Subtask boundary:** Use validated responses only. Do not treat nonrespondents as no longer attending or present survey intentions as actual event attendance. If either category has zero responses, display the counts directly without dividing by zero. If there are no valid responses, hand off rather than report a misleading ratio.
+* **Retry limits:** 1 additional calculation if a discrepancy is found or validated inputs change.
+
+### Permitted Subtask 4
+
+* **Subtask name:** update_infographic_chart
+* **Subtask description:** Compare the calculated results with the existing infographic and update its counts, percentages, ratio, and last-updated timestamp when needed.
+* **Subtask boundary:** Modify only the designated chart through tools authorized in Section 3, after resolving issues that affect the totals and obtaining any required approval. Preserve the approved design and use aggregate data only. Do not publish to additional destinations or display respondents’ personal information.
+* **Retry limits:** 1 additional attempt only when the previous update is confirmed to have failed without changing the chart. If the outcome is uncertain, inspect the chart before considering another attempt.
+
+### Permitted Subtask 5
+
+* **Subtask name:** verify_chart_accuracy
+* **Subtask description:** Read the saved chart and compare its displayed values with the validated calculations. Confirm that labels describe planned attendance, totals match, and percentages are consistent within rounding.
+* **Subtask boundary:** Mark the task complete only when the saved chart is verified. Any correction must use the authorized update subtask and remain within its retry limit. Hand off discrepancies that cannot be resolved within the remaining budget.
+* **Retry limits:** 1 additional verification after an authorized correction or temporary read failure.
+
+**Decision guidance:** After each subtask, select the permitted subtask most likely to resolve the most important remaining uncertainty. Subtasks may be skipped, repeated, or combined when supported by available evidence and their prerequisites. Do not follow a fixed sequence or continuously poll within one run; later workflow triggers may initiate new updates. All actions remain subject to Section 3’s permissions and limits. If no permitted subtask can make useful progress, stop and hand the case to the Director of Outreach.
+
 
 ## 5. When to Stop or Hand Off to a Human
 

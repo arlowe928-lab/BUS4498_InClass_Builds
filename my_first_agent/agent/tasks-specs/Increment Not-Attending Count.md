@@ -1,5 +1,6 @@
 # Increment Not-Attending Count.md
 
+```yaml
 ## Basic Information
 
 - **Task ID:** T3
@@ -7,6 +8,14 @@
 - **Task type:** Act
 - **Task owner:** Director of Outreach
 
+# Agent Inference Configuration
+Provider: OpenAI
+Model: gpt-6-sol
+Role: Tally count 
+Maximum inference requests per task run: 2
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach. 
+
+```
 ## 1. Task Description
 
 The AI agent updates the total number of students who are no longer attending the Cal Poly Vibe Coding Hackathon. When a student is classified as **“No longer attending,”** the agent increments the not-attending count by one.

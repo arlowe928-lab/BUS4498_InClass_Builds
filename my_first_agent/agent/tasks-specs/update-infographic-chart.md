@@ -8,11 +8,11 @@ task_name: "Update Infographic Chart"
 task_owner: "Director of Outreach"
 
 # Agent Inference Configuration
-Provider: [e.g., Groq, OpenAI, Claude, Google Gemini]
-Model: "[Exact supported API model ID.]"
-Role: [permitted subtasks the model supports]
-Maximum inference requests per task run: "[Whole-number limit.]"
-On inference failure or exhausted limits: Record the unresolved status and hand the case to [human role].
+Provider:OpenAI
+Model: gpt-6-sol
+Role: retrieve_survey_results, validate_attendance_responses, calculate_attendance_ratio, update_infographic_chart, verify_chart_accuracy
+Maximum inference requests per task run: 10
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach
 ```
 
 ## 1. Task Goal

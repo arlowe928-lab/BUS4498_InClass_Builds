@@ -1,4 +1,4 @@
-# Increment Attending Count Task Specification
+# Increment Attending Count
 
 ## Basic Information
 

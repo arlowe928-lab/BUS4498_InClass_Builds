@@ -1,12 +1,19 @@
 # Compile List of Non-Responders Task
-
+```yaml
 ## Basic Information
 
 - **Task ID:** T5
 - **Task name:** Compile List of Non-Responders
 - **Task type:** Retrieve
 - **Task owner:** Director of Outreach
+# Agent Inference Configuration
+Provider: OpenAI
+Model: gpt-6-sol
+Role: Tally the count of unresponsive emails.
+Maximum inference requests per task run: 4
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach
 
+```
 ## 1. Task Description
 
 The AI agent compiles a list of students who have not yet submitted a survey response for the Cal Poly Vibe Coding Hackathon. The agent compares the complete sign-up list against the submitted survey responses and identifies students for whom no response has been recorded.

@@ -1,12 +1,19 @@
 # Increment Attending Count
-
+```yaml
 ## Basic Information
 
 - **Task ID:** T4
 - **Task name:** Increment Attending Count
 - **Task type:** Act
 - **Task owner:** Director of Outreach
+# Agent Inference Configuration
+Provider: OpenAI
+Model: gpt-6-sol
+Role: Tally count
+Maximum inference requests per task run: 2
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach
 
+```
 ## 1. Task Description
 
 The AI agent updates the total number of students attending the Cal Poly Vibe Coding Hackathon. When a student is classified as **“Attending,”** the agent increments the attending count by one.

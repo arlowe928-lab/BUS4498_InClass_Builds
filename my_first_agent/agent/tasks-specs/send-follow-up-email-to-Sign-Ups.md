@@ -7,12 +7,11 @@
 - **Task owner:** Director of Outreach
 
 # Agent Inference Configuration
-Provider: [e.g., Groq, OpenAI, Claude, Google Gemini]
-Model: "[Exact supported API model ID.]"
-Role: [permitted subtasks the model supports]
-Maximum inference requests per task run: "[Whole-number limit.]"
-On inference failure or exhausted limits: Record the unresolved status and hand the case to [human role].
-
+Provider: OpenAI
+Model: gpt-6-sol
+Role: Read email list, send email 
+Maximum inference requests per task run: 5
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach 
 ## 1. Task Description
 
 The AI agent sends a follow-up email through Microsoft Outlook to individuals who have signed up for the Cal Poly Vibe Coding Hackathon. The email provides the event’s start time, date, and location and includes the recipient’s current attendance status.

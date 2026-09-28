@@ -1,4 +1,4 @@
-# Compile List of Non-Responders Task Specification
+# Compile List of Non-Responders 
 
 ## Basic Information
 

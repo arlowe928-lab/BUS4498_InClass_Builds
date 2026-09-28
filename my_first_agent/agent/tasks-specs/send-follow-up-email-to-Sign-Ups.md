@@ -1,11 +1,11 @@
 # Send Follow-Up Email to Sign-Ups Task.md
 ## Basic Information
-
+```yaml
 - **Task ID:** T1
 - **Task name:** Send Follow-Up Email to Sign-Ups
 - **Task type:** Act
 - **Task owner:** Director of Outreach
-```yaml
+
 # Agent Inference Configuration
 Provider: OpenAI
 Model: gpt-6-sol

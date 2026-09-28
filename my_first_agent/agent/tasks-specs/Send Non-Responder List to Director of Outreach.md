@@ -1,11 +1,20 @@
 # Send Non-Responder List to Director of Outreach.md
-
+```yaml
 ## Basic Information
 
 - **Task ID:** T6
 - **Task name:** Send Non-Responder List to Director of Outreach
 - **Task type:** Act
 - **Task owner:** Director of Outreach
+
+# Agent Inference Configuration
+Provider: OpenAI
+Model: gpt-6-sol
+Role: Send email
+Maximum inference requests per task run: 3
+On inference failure or exhausted limits: Record the unresolved status and hand the case to the Director of Outreach 
+
+```
 
 ## 1. Task Description
 

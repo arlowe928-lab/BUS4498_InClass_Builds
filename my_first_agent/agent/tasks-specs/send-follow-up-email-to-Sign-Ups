@@ -1,0 +1,67 @@
+# Send Follow-Up Email to Sign-Ups Task Specification
+
+## Basic Information
+
+- **Task ID:** T1
+- **Task name:** Send Follow-Up Email to Sign-Ups
+- **Task type:** Act
+- **Task owner:** Director of Outreach
+
+## 1. Task Description
+
+The AI agent sends a follow-up email through Microsoft Outlook to individuals who have signed up for the Cal Poly Vibe Coding Hackathon. The email provides the event’s start time, date, and location and includes the recipient’s current attendance status.
+
+The attendance status must use one of only two values: **“Attending”** or **“No longer attending.”** Before sending the email, the agent verifies that the recipient has a valid email address and that the appropriate follow-up email has not already been sent. This task ensures that sign-ups receive accurate event information while preventing duplicate emails.
+
+## 2. Inputs
+
+### Input 1
+
+- **Input name:** Sign-up response data
+- **Contents and format:** Structured records containing the sign-up’s name, email address, attendance status, and follow-up email status. Attendance status must be either **“Attending”** or **“No longer attending.”**
+- **Source:** Survey response data from the preceding workflow task.
+
+### Input 2
+
+- **Input name:** Hackathon event details
+- **Contents and format:** The confirmed **start time, date, and location** of the Cal Poly Vibe Coding Hackathon.
+- **Source:** Director of Outreach or approved event information source.
+
+### Input 3
+
+- **Input name:** Follow-up email template
+- **Contents and format:** Approved Outlook email subject and body containing the Cal Poly Vibe Coding Hackathon event information and appropriate attendance-related messaging.
+- **Source:** Director of Outreach.
+
+- **If a required input is missing or invalid:** Do not send the email. Record the affected sign-up and missing or invalid information and refer the case to the Director of Outreach for review.
+
+## 3. Outputs
+
+### Output 1
+
+- **Output name:** Follow-up email
+- **Contents and format:** Microsoft Outlook email sent to the sign-up containing the Cal Poly Vibe Coding Hackathon **start time, date, and location**, along with messaging appropriate to whether the recipient is **“Attending”** or **“No longer attending.”**
+- **Next task or recipient:** Sign-up’s provided email address.
+- **Complete when:** Microsoft Outlook confirms that the email was successfully sent to the intended recipient.
+
+### Output 2
+
+- **Output name:** Email send record
+- **Contents and format:** Record containing the recipient’s email address, attendance status, send timestamp, and email send status.
+- **Next task or recipient:** Sign-up tracking record.
+- **Complete when:** The follow-up email attempt and its outcome have been recorded.
+
+## 4. Planned Tools
+
+### Tool 1
+
+- **Tool name:** `send_follow_up_email`
+- **Input:** Sign-up response data, Hackathon event details, Follow-up email template
+- **Output:** Follow-up email, Email send record
+- **Implementation Route:** Microsoft Outlook API call
+- **Integration approach:** MCP integration
+- **Role in this task:** Retrieves the sign-up’s email address and attendance status, verifies that the status is either **“Attending”** or **“No longer attending,”** inserts the confirmed Cal Poly Vibe Coding Hackathon start time, date, and location into the approved email template, checks that the applicable follow-up has not already been sent, sends the email through Microsoft Outlook, and records the send result.
+- **Task timeout:** 30 seconds per email
+- **Maximum retries:** 2
+- **Retry only when:** Microsoft Outlook returns a temporary connection, timeout, or service-availability error and there is no confirmation that the original email was sent. The agent must check the email send status before retrying to prevent duplicate messages.
+- **On timeout, exhausted retries, or an error that cannot be retried:** Record the email as unresolved or failed and send the case to the Director of Outreach for review. Do not record the email as successfully sent.

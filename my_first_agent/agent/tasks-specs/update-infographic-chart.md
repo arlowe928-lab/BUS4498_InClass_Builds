@@ -17,7 +17,8 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ## 1. Task Goal
 
-- **Objective:** The AI agent should continuously use the survey results to update an infographic chart showing the ratio of event attendees to no longer attending.    
+- **Objective:** The AI agent automatically updates the infographic chart whenever new survey responses are submitted. It analyzes the latest survey results and updates the bar chart to reflect the current response status. The chart uses grey to represent individuals who have not yet responded, blue for respondents who selected “Attending,” and red for respondents who selected “Not Attending.”
+   
 
 ## 2. Inbound Inputs
 

@@ -1,5 +1,4 @@
-# Send Follow-Up Email to Sign-Ups Task Specification
-
+# Send Follow-Up Email to Sign-Ups Task.md
 ## Basic Information
 
 - **Task ID:** T1

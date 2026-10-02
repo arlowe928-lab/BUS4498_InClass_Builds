@@ -14,8 +14,7 @@ Ethan Arlow
 AttendEZ
 
 ### System Goal
-For CPVC, create a more accurate projected event attendance statistic, measured by attendance-to-registration  moving from 40% to 80%, without invading potential participants’ privacy and avoiding excessive communication.
-
+For CPVC, create a more accurate projected event attendance statistic, measured by attendance-to-registration  moving from 40% to 80%, without using excessive communication (only sending one email). 
 ### Who Is Better Off When This Works?
 
 The CPVC will benefit by having a more accurate projected event attendance statistic to use while planning their Hackathon event. 

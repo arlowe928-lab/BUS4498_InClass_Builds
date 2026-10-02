@@ -36,22 +36,44 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ### Task-Wide Limits
 
-- **Total task timeout:** [Maximum elapsed time for one task run, with units; include tool calls, retries, and waiting.]
-- **Maximum tool calls:** [Maximum total calls across all tools during one task run; retries count toward this total.]
+- **Total task timeout:** 180 seconds per task run, including inference requests, tool calls, retries, and waiting.
+- **Maximum tool calls:** 12 calls per task run, including retries. The separate limit of 10 inference requests also applies.
 
 ### Tool 1
 
-- **Tool name:** [Proposed verb-object name, used consistently throughout the project.]
-- **Tool type:** [For example: Python script, pretrained model, API request, database query, or language-model call.]
-- **Supports these permitted subtasks:** [Names from Section 4.]
-- **Allowed use:** [What the tool may read, create, change, or send; identify permitted data sources and destinations.]
-- **Prohibited use:** [Actions, data, or destinations outside this tool's authority.]
-- **Approval required:** [What requires approval, who provides it, and when. Write "None within the allowed use" if applicable.]
-- **Timeout per call:** [Maximum duration of a single attempt, with units.]
-- **Maximum retries per call:** [Nonnegative whole number of additional attempts after the first; 0 means no retries.]
-- **Retry conditions and failure response:** [When a retry is allowed, any waiting interval, and what happens on timeout or exhausted retries. For actions that change state, avoid duplicate actions and hand off if the outcome is uncertain.]
+- **Tool name:** retrieve_survey_results_tool
+- **Tool type:** API request
+- **Supports these permitted subtasks:** retrieve_survey_results
+- **Allowed use:** Read attendance responses from the designated Google Form or its approved linked response sheet and read the complete sign-up list supplied by the workflow for the same event. Retrieve only identifiers needed to match registrations with responses, attendance selections, and response timestamps.
+- **Prohibited use:** Modify registrations or survey responses, access unrelated forms or events, contact students, or distribute individual response records.
+- **Approval required:** None within the allowed use.
+- **Timeout per call:** 35 seconds
+- **Maximum retries per call:** 1
+- **Retry conditions and failure response:** Retry once after a 2-second wait for a temporary connection or service error, within the task-wide limits. If retrieval remains unsuccessful or the source is missing or unauthorized, record the failure and hand the case to the Director of Outreach. Do not use incomplete results to update the chart
+- 
 
-*Copy the Tool block as needed. Tool-specific and task-wide limits both apply; stop at whichever is reached first. Naming a tool does not authorize uses outside its stated permissions.*
+## Tool 2
+- Tool name: analyze_attendance_responses_tool
+- Tool type: Python script.
+- Supports these permitted subtasks: validate_attendance_responses, calculate_attendance_ratio.
+- Allowed use: Validate the retrieved records, match responses to registered students, apply the workflow’s approved duplicate-handling rule, and calculate aggregate counts. Calculate nonrespondents from registered students without a recorded response. Calculate the attending-to-no-longer-attending ratio and percentages using the combined valid response total.
+- Prohibited use: Infer attendance from missing responses, count nonrespondents as not attending, invent missing values, apply an unapproved duplicate-handling rule, modify source records, or send student information elsewhere.
+- Approval required: None within the allowed use. The Director of Outreach must approve any new duplicate-handling rule before it is applied.
+- Timeout per call: 10 seconds.
+- Maximum retries per call: 1.
+- Retry conditions and failure response: Repeat once only if refreshed data or approved clarification becomes available, or a calculation discrepancy can be corrected. No waiting interval is required. If invalid records, unresolved duplicates, or inconsistent totals prevent a supported result, record the issue and hand the case to the Director of Outreach.
+
+## Tool 3
+- Tool name: manage_infographic_chart_tool
+- Tool type: Chart platform API request.
+- Supports these permitted subtasks: update_infographic_chart, verify_chart_accuracy.
+- Allowed use: Read and update only the designated infographic chart. Replace existing aggregate values with validated counts, percentages, ratio, and the source-data timestamp. Preserve the approved design: grey for nonrespondents, blue for “Attending,” and red for “No longer attending.” Read the saved chart to verify its values, labels, colors, and timestamp.
+- Prohibited use: Change unrelated charts, publish to additional destinations, display names or email addresses, alter source responses, or overwrite newer chart data with an older response snapshot.
+- Approval required: None within the allowed use. Changes to the chart’s destination or approved design require approval from the Director of Outreach before implementation.
+- Timeout per call: 20 seconds.
+- Maximum retries per call: 1, subject to each subtask’s retry limit.
+- Retry conditions and failure response: Retry a temporary read failure once after a 2-second wait. Retry an update only after confirming that the original attempt failed without changing the chart. If the update outcome is uncertain, read the saved chart before attempting another update. Use the same validated values when retrying to prevent duplicate changes. If the outcome cannot be verified or a discrepancy remains unresolved, record the issue and hand the case to the Director of Outreach.
+Tool-specific and task-wide limits both apply. Stop at whichever limit is reached first. Naming a tool does not authorize uses outside its stated permissions.
 
 ## 4. How the Agent Should Reason
 
@@ -95,9 +117,9 @@ On inference failure or exhausted limits: Record the unresolved status and hand 
 
 ## 5. When to Stop or Hand Off to a Human
 
-- **Stop successfully when:** [What evidence shows that the required result is complete and acceptable? Confidence alone is not enough.]
-- **Hand off early when:** [What missing evidence, lack of progress, failure, or out-of-scope finding requires human review?]
-- **Hand off to:** [Specific person, role, or review queue.]
+- **Stop successfully when:** The saved chart has been read back and verified against the validated source snapshot. Its three category counts match the registration and response records, percentages use the stated denominator and agree within rounding, and any displayed ratio is mathematically valid. The chart uses the approved colors, describes planned attendance, includes the source-data timestamp, and contains no personal information. If the existing chart already meets these conditions, record completion without rewriting it.
+- **Hand off early when:** Required survey data, the complete sign-up list, or the chart destination is missing or inaccessible; unsupported answers, unmatched records, or unresolved duplicates affect totals; no valid attendance responses are available; an update would require an unapproved action; the saved chart cannot be verified; or a timeout, retry, tool-call, or inference limit is reached before completion.
+- **Hand off to:** Director of Outreach
 
 Stop at the first applicable budget limit or handoff condition. While awaiting review, take no further autonomous action.
 

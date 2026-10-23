@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find campus club events and share your club’s next gathering.">
+  <title>Club Event Radar</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script defer src="config.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="top"><div class="wrap">
+    <p class="kicker">Campus life · Club connections</p>
+    <h1>Club Event Radar</h1>
+    <p class="lede">Find your next good time. Discover what campus clubs are planning, or share an event of your own.</p>
+    <ul class="badges"><li>On campus &amp; online</li><li>Open to new faces</li><li>Find free food</li></ul>
+  </div></header>
+  <main class="wrap layout">
+    <section class="card post" aria-labelledby="post-heading">
+      <h2 id="post-heading">Share your club’s event</h2>
+      <p class="muted">Paste your announcement. We’ll turn it into an event card and check the posting rules.</p>
+      <form id="event-form">
+        <label for="announcement">Announcement <span class="hint" id="announcement-hint">Include a date, start time, and campus or online location. Up to 2,000 characters.</span></label>
+        <textarea id="announcement" name="announcement" rows="7" required aria-describedby="announcement-hint character-count" placeholder="Club name: What’s happening? When and where? Let everyone know what to expect."></textarea>
+        <p class="hint" id="character-count">0 / 2,000 characters</p>
+        <p class="hint">Leave out personal phone numbers, email addresses, and payment handles. Your text is sent to AI to prepare the card; posts needing review wait for a moderator.</p>
+        <button id="submit-button" type="submit">Submit event</button>
+      </form>
+      <div id="result" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+    </section>
+    <section class="board-section" aria-labelledby="board-heading">
+      <div class="board-head"><h2 id="board-heading">On the radar</h2><button class="ghost" id="refresh-button" type="button">Refresh</button></div>
+      <p class="muted">Published events, soonest first. All times are Pacific.</p>
+      <div class="filters" aria-label="Filter events">
+        <button class="chip" type="button" id="all-filter" aria-pressed="true">All events</button>
+        <button class="chip" type="button" id="food-filter" aria-pressed="false">🍕 Free food</button>
+      </div>
+      <p id="board-status" class="hint" role="status" aria-live="polite"></p>
+      <ul id="board" class="board" aria-label="Published events"><li class="empty">Loading events…</li></ul>
+    </section>
+  </main>
+  <footer class="wrap foot"><p>Club Event Radar · A BUS 4498 class project.</p><p>Practice posting rules, not official Cal Poly or ASI policy.</p><noscript>Please enable JavaScript to read and submit events.</noscript></footer>
+</body>
+</html>

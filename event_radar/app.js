@@ -3,6 +3,7 @@
   const config = window.EVENT_RADAR_CONFIG;
   const form = document.getElementById("event-form");
   const announcement = document.getElementById("announcement");
+  const flyerInput = document.getElementById("flyer");
   const submitButton = document.getElementById("submit-button");
   const refreshButton = document.getElementById("refresh-button");
   const board = document.getElementById("board");
@@ -10,7 +11,7 @@
   const result = document.getElementById("result");
   const allFilter = document.getElementById("all-filter");
   const foodFilter = document.getElementById("food-filter");
-  const columns = "id,created_at,status,title,club,event_date,start_time,end_time,place_name,place_detail,cost,free_food,summary";
+  const columns = "id,created_at,status,title,club,event_date,start_time,end_time,place_name,place_detail,cost,free_food,summary,flyer_url";
   const labels = { published: "Published", waiting: "Waiting for review", rejected: "Not posted", duplicate: "Already posted", error: "Couldn’t submit" };
   let events = [];
   let foodOnly = false;
@@ -41,6 +42,17 @@
     const hour = Number(parts[0]);
     return `${hour % 12 || 12}:${parts[1]} ${hour >= 12 ? "PM" : "AM"}`;
   }
+  function safeFlyerUrl(value) {
+    if (typeof value !== "string" || !value) return "";
+    try {
+      const url = new URL(value);
+      const project = new URL(config.supabaseUrl);
+      return url.protocol === "https:" && url.origin === project.origin &&
+        !url.username && !url.password &&
+        /^\/storage\/v1\/object\/public\/flyers\/[0-9a-f-]+\.(png|jpg)$/.test(url.pathname) &&
+        !url.search && !url.hash ? url.href : "";
+    } catch { return ""; }
+  }
   function eventCard(event) {
     const item = element("li", "event");
     const date = event.event_date ? new Date(event.event_date + "T12:00:00Z") : null;
@@ -60,6 +72,15 @@
     if (event.free_food) tags.append(element("span", "tag food", "🍕 Free food"));
     if (tags.childNodes.length) body.append(tags);
     item.append(badge, body);
+    const flyerUrl = safeFlyerUrl(event.flyer_url);
+    if (flyerUrl) {
+      const image = element("img", "flyer");
+      image.src = flyerUrl;
+      image.alt = "Flyer for " + (event.title || "this event");
+      image.loading = "lazy";
+      image.addEventListener("error", () => image.remove(), { once: true });
+      item.append(image);
+    }
     return item;
   }
   function renderEvents() {
@@ -114,6 +135,12 @@
       announcement.focus();
       return;
     }
+    const flyer = flyerInput.files[0];
+    if (flyer && (!["image/jpeg", "image/png"].includes(flyer.type) || !flyer.size || flyer.size > 5 * 1024 * 1024)) {
+      showResult("error", "Choose a non-empty JPG or PNG photo no larger than 5 MB.");
+      flyerInput.focus();
+      return;
+    }
     submitting = true;
     submitButton.disabled = true;
     submitButton.textContent = "Checking your event…";
@@ -124,6 +151,7 @@
     try {
       const body = new FormData();
       body.append("announcement", text);
+      if (flyer) body.append("flyer", flyer);
       const response = await fetch(config.supabaseUrl.replace(/\/$/, "") + "/functions/v1/submit-event", {
         method: "POST", headers: { apikey: config.publishableKey }, body, signal: controller.signal
       });
@@ -143,12 +171,135 @@
       form.setAttribute("aria-busy", "false");
     }
   });
+  const moderatorForm = document.getElementById("moderator-form");
+  const moderatorPanel = document.getElementById("moderator-panel");
+  const moderatorStatus = document.getElementById("moderator-status");
+  const moderatorAccount = document.getElementById("moderator-account");
+  const signInButton = document.getElementById("sign-in-button");
+  const signOutButton = document.getElementById("sign-out-button");
+  const reviewRefresh = document.getElementById("review-refresh");
+  const reviewStatus = document.getElementById("review-status");
+  const waitingBoard = document.getElementById("waiting-board");
+  let moderatorDb;
+  let moderatorUser = null;
+  let reviewVersion = 0;
+  let reviewing = false;
+
+  function setModerator(user) {
+    if ((moderatorUser && moderatorUser.id) === (user && user.id)) return;
+    moderatorUser = user;
+    reviewVersion++;
+    waitingBoard.replaceChildren();
+    reviewStatus.textContent = "";
+    moderatorForm.hidden = Boolean(user);
+    moderatorPanel.hidden = !user;
+    moderatorAccount.textContent = user ? "Signed in as " + user.email : "";
+    moderatorStatus.textContent = user ? "Signed in." : "Signed out.";
+    if (user) setTimeout(loadWaiting, 0);
+  }
+  async function loadWaiting() {
+    if (!moderatorUser || !moderatorDb) return;
+    const version = ++reviewVersion;
+    reviewRefresh.disabled = true;
+    waitingBoard.replaceChildren();
+    reviewStatus.textContent = "Loading waiting posts…";
+    try {
+      const { data, error } = await moderatorDb.from("events")
+        .select(columns + ",status_reason,announcement,note_for_moderator,rule_flags")
+        .eq("status", "waiting").order("created_at", { ascending: true });
+      if (version !== reviewVersion || !moderatorUser) return;
+      if (error) throw error;
+      for (const event of data || []) {
+        const item = eventCard(event);
+        const review = element("div", "review");
+        review.append(element("p", "why", event.status_reason || "Needs moderator review."));
+        if (event.note_for_moderator) review.append(element("p", "why", event.note_for_moderator));
+        review.append(element("p", "original", "Original announcement: " + event.announcement));
+        const actions = element("p", "actions");
+        const approve = element("button", "", "Approve");
+        const reject = element("button", "ghost", "Reject");
+        approve.type = reject.type = "button";
+        approve.disabled = reject.disabled = reviewing;
+        approve.addEventListener("click", () => reviewEvent(event.id, "published"));
+        reject.addEventListener("click", () => reviewEvent(event.id, "rejected"));
+        actions.append(approve, reject);
+        review.append(actions);
+        item.querySelector(".event-body").append(review);
+        waitingBoard.append(item);
+      }
+      if (!data || !data.length) waitingBoard.append(element("li", "empty", "No posts are waiting for review."));
+      reviewStatus.textContent = `${(data || []).length} waiting posts`;
+    } catch {
+      if (version === reviewVersion) reviewStatus.textContent = "Couldn’t load waiting posts. Try Refresh, or sign out and sign in again.";
+    } finally {
+      if (version === reviewVersion) reviewRefresh.disabled = false;
+    }
+  }
+  async function reviewEvent(id, status) {
+    if (!moderatorUser || reviewing) return;
+    const userId = moderatorUser.id;
+    reviewing = true;
+    waitingBoard.querySelectorAll("button").forEach(button => { button.disabled = true; });
+    moderatorStatus.textContent = "Saving your decision…";
+    try {
+      const { data: identity, error: authError } = await moderatorDb.auth.getUser();
+      if (authError || !identity.user || identity.user.id !== userId || !moderatorUser || moderatorUser.id !== userId) throw new Error("Please sign in again before reviewing posts.");
+      const { data, error } = await moderatorDb.from("events").update({
+        status,
+        status_reason: status === "published" ? "Approved by a moderator." : "Rejected by a moderator.",
+        reviewed_at: new Date().toISOString(), reviewed_by: identity.user.id
+      }).eq("id", id).eq("status", "waiting").select("id");
+      if (error) throw new Error(error.code === "23505" ? "Another live post already uses this date, time, and place." : "Couldn’t save the decision. Refresh before trying again.");
+      if (moderatorUser && moderatorUser.id === userId) moderatorStatus.textContent = data && data.length
+        ? (status === "published" ? "Event approved and published." : "Event rejected.")
+        : "This post was already reviewed. The waiting list has been refreshed.";
+      await loadEvents();
+    } catch (error) {
+      if (moderatorUser && moderatorUser.id === userId) moderatorStatus.textContent = error.message;
+    } finally {
+      reviewing = false;
+      if (moderatorUser && moderatorUser.id === userId) await loadWaiting();
+    }
+  }
+  moderatorForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!moderatorDb || signInButton.disabled) return;
+    signInButton.disabled = true;
+    moderatorStatus.textContent = "Signing in…";
+    const password = document.getElementById("moderator-password");
+    try {
+      const { data, error } = await moderatorDb.auth.signInWithPassword({
+        email: document.getElementById("moderator-email").value.trim(), password: password.value
+      });
+      if (error || !data.user) throw new Error("Couldn’t sign in. Check your email and password, then try again.");
+      setModerator(data.user);
+    } catch (error) { moderatorStatus.textContent = error.message; }
+    finally { password.value = ""; signInButton.disabled = false; }
+  });
+  signOutButton.addEventListener("click", async () => {
+    if (!moderatorDb || signOutButton.disabled) return;
+    signOutButton.disabled = true;
+    // Clear private cards immediately and invalidate any in-flight list request.
+    setModerator(null);
+    signInButton.disabled = true;
+    try {
+      const { error } = await moderatorDb.auth.signOut({ scope: "local" });
+      if (error) throw error;
+    } catch { moderatorStatus.textContent = "Couldn’t finish signing out. Reload this page to clear this session."; }
+    finally { signOutButton.disabled = false; signInButton.disabled = false; }
+  });
+  reviewRefresh.addEventListener("click", loadWaiting);
   try {
     if (!config || !config.supabaseUrl || !config.publishableKey || !window.supabase) throw new Error("Missing connection settings or library.");
     db = window.supabase.createClient(config.supabaseUrl, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    moderatorDb = window.supabase.createClient(config.supabaseUrl, config.publishableKey, {
+      auth: { persistSession: false, autoRefreshToken: true, detectSessionInUrl: false, storageKey: "event-radar-moderator" }
+    });
+    moderatorDb.auth.onAuthStateChange((_event, session) => setModerator(session ? session.user : null));
     loadEvents();
   } catch {
     submitButton.disabled = true;
+    signInButton.disabled = true;
     refreshButton.disabled = true;
     board.replaceChildren(element("li", "empty", "The website couldn’t connect. Check your internet connection and reload the page."));
     showResult("error", "The connection library or settings could not load. Please reload the page.");

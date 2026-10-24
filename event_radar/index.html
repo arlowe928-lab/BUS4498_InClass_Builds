@@ -25,7 +25,9 @@
         <label for="announcement">Announcement <span class="hint" id="announcement-hint">Include a date, start time, and campus or online location. Up to 2,000 characters.</span></label>
         <textarea id="announcement" name="announcement" rows="7" required aria-describedby="announcement-hint character-count" placeholder="Club name: What’s happening? When and where? Let everyone know what to expect."></textarea>
         <p class="hint" id="character-count">0 / 2,000 characters</p>
-        <p class="hint">Leave out personal phone numbers, email addresses, and payment handles. Your text is sent to AI to prepare the card; posts needing review wait for a moderator.</p>
+        <label for="flyer">Flyer photo <span class="hint" id="flyer-hint">Optional JPG or PNG, up to 5 MB. Photo posts always wait for moderator review.</span></label>
+        <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png" aria-describedby="flyer-hint">
+        <p class="hint">Leave out personal phone numbers, email addresses, and payment handles. Your text and optional photo are sent to AI to prepare the card; posts needing review wait for a moderator.</p>
         <button id="submit-button" type="submit">Submit event</button>
       </form>
       <div id="result" role="status" aria-live="polite" aria-atomic="true" hidden></div>
@@ -41,6 +43,29 @@
       <ul id="board" class="board" aria-label="Published events"><li class="empty">Loading events…</li></ul>
     </section>
   </main>
+  <div class="wrap">
+    <details class="card mod">
+      <summary>Moderator sign-in</summary>
+      <div>
+        <form id="moderator-form">
+          <p class="hint">Sign in with your moderator account. Reloading this page signs you out.</p>
+          <label for="moderator-email">Email</label>
+          <input id="moderator-email" type="email" autocomplete="username" required>
+          <label for="moderator-password">Password</label>
+          <input id="moderator-password" type="password" autocomplete="current-password" required>
+          <button id="sign-in-button" type="submit">Sign in</button>
+        </form>
+        <p id="moderator-status" role="status" aria-live="polite"></p>
+        <section id="moderator-panel" aria-label="Moderator review" hidden>
+          <p id="moderator-account" class="hint"></p>
+          <p class="actions"><button id="review-refresh" class="ghost" type="button">Refresh waiting posts</button><button id="sign-out-button" class="ghost" type="button">Sign out</button></p>
+          <h2>Waiting for review</h2>
+          <p id="review-status" role="status" aria-live="polite"></p>
+          <ul id="waiting-board" class="board" aria-label="Waiting events"></ul>
+        </section>
+      </div>
+    </details>
+  </div>
   <footer class="wrap foot"><p>Club Event Radar · A BUS 4498 class project.</p><p>Practice posting rules, not official Cal Poly or ASI policy.</p><noscript>Please enable JavaScript to read and submit events.</noscript></footer>
 </body>
 </html>

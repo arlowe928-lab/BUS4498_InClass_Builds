@@ -107,9 +107,26 @@ export async function handler(req: Request): Promise<Response> {
     }
     const contentType = req.headers.get("content-type") || "";
     let announcement: unknown;
+    let source = "", sourceId = "", sourceName = "";
+    let thread: string[] = [];
     let flyer: File | null = null;
     try {
-      if (contentType.includes("application/json")) announcement = (await req.json()).announcement;
+      if (contentType.includes("application/json")) {
+        const payload = await req.json();
+        announcement = payload.announcement;
+        for (const field of ["source", "source_id", "source_name"]) {
+          if (payload[field] !== undefined && typeof payload[field] !== "string") return json({ ok: false, message: "Chat source fields must be text." }, 400);
+        }
+        source = (payload.source || "").slice(0, 100);
+        sourceId = (payload.source_id || "").slice(0, 200);
+        sourceName = (payload.source_name || "").slice(0, 200);
+        if (Boolean(source) !== Boolean(sourceId)) return json({ ok: false, message: "A chat post needs both source and source_id." }, 400);
+        if (payload.thread !== undefined && (!Array.isArray(payload.thread) || payload.thread.some((v: unknown) => typeof v !== "string"))) return json({ ok: false, message: "Chat context must be a list of messages." }, 400);
+        thread = (payload.thread || []).slice(-4).map((v: string) => Array.from(v).slice(0, 500).join(""));
+        // Stage 12 consumes this context. This pre-Stage-12 agent accepts it but
+        // deliberately does not use earlier messages to fill the event card.
+        void thread;
+      }
       else if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
         const form = await req.formData();
         const suppliedFlyer = form.get("flyer");
@@ -122,6 +139,15 @@ export async function handler(req: Request): Promise<Response> {
     const imageUrl = flyer ? await validateFlyer(flyer) : "";
     if (!ready) throw new PublicError("The agent needs its AI key and database settings before it can accept posts.", 503);
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    // Check message identity before the spending lookup or any AI call.
+    const alreadyRead = async () => {
+      if (!sourceId) return false;
+      const { data: previous, error: lookupError } = await db.from("events").select("id").eq("source", source).eq("source_id", sourceId).maybeSingle();
+      if (lookupError) throw new PublicError("The chat message could not be checked. Please try again later.", 503);
+      return Boolean(previous);
+    };
+    const repeatedMessage = () => json({ ok: true, status: "duplicate", already_read: true, message: "This chat message has already been read.", reasons: [], event: null });
+    if (await alreadyRead()) return repeatedMessage();
     const { count, error: countError } = await db.from("events").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 86400000).toISOString());
     if (countError || count === null) throw new PublicError("The database could not be checked. Please try again later.", 503);
     if (count >= 100) return json({ ok: false, message: "The daily limit of 100 posts has been reached. Please try again later." }, 429);
@@ -158,6 +184,7 @@ export async function handler(req: Request): Promise<Response> {
     const dedupeKey = date && start && card.place_code ? `${date}|${start}|${card.place_code}` : `incomplete|${crypto.randomUUID()}`;
     const row = {
       status, status_reason: finalReasons.join(" "), announcement,
+      source, source_id: sourceId, source_name: sourceName,
       title: card.title, club: card.club, event_date: date, start_time: start, end_time: end,
       place_code: card.place_code, place_name: PLACES[card.place_code] || (card.place_code ? "Place needs review" : ""),
       place_detail: card.place_detail, cost: card.cost, free_food: card.free_food, summary: card.summary,
@@ -165,6 +192,7 @@ export async function handler(req: Request): Promise<Response> {
       dedupe_key: dedupeKey, ai_model: model,
     };
     const { data, error } = await db.from("events").insert(row).select(PUBLIC_COLUMNS).single();
+    if (error?.code === "23505" && await alreadyRead()) return repeatedMessage();
     if (error?.code === "23505") return json({ ok: true, status: "duplicate", message: "This event is already posted or waiting for review.", reasons: ["An event with the same date, start time, and place already exists."], event: null });
     if (error) { console.error("Event save failed", error.code); throw new PublicError("The event could not be saved. Please try again later.", 503); }
     if (flyer) {

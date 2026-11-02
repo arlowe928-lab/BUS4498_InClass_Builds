@@ -24,14 +24,19 @@ export function contextFrom(messages: Message[], current: Message) {
 export async function handler(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (!["GET", "POST"].includes(req.method)) return json({ ok: false, message: "Use GET to check or POST to read new messages." }, 405);
-  const token = Deno.env.get("GROUPME_TOKEN") || "";
-  const group = Deno.env.get("GROUPME_GROUP_ID") || "";
-  const bot = Deno.env.get("GROUPME_BOT_ID") || "";
+  const token = (Deno.env.get("GROUPME_TOKEN") || "").trim();
+  const group = (Deno.env.get("GROUPME_GROUP_ID") || "").trim();
+  const bot = (Deno.env.get("GROUPME_BOT_ID") || "").trim();
   const url = Deno.env.get("SUPABASE_URL") || "";
   const key = dictionary("SUPABASE_SECRET_KEYS").default || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   const publishable = dictionary("SUPABASE_PUBLISHABLE_KEYS").default || "";
   const ready = Boolean(token && group && url && key && publishable);
-  if (!ready) return json({ ok: true, ready: false, bot: Boolean(bot), last_message_id: null, read_count: 0, message: "The reader needs its GroupMe and Supabase settings in Secrets." }, req.method === "GET" ? 200 : 503);
+  const missing = [
+    !token && "GROUPME_TOKEN", !group && "GROUPME_GROUP_ID",
+    !url && "SUPABASE_URL", !key && "SUPABASE_SECRET_KEYS (or SUPABASE_SERVICE_ROLE_KEY)",
+    !publishable && "SUPABASE_PUBLISHABLE_KEYS",
+  ].filter(Boolean);
+  if (!ready) return json({ ok: true, ready: false, bot: Boolean(bot), missing, last_message_id: null, read_count: 0, message: "The reader needs its GroupMe and Supabase settings in Secrets." }, req.method === "GET" ? 200 : 503);
   const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const deadline = Date.now() + 130000;
   function timeout(maximum: number) {
@@ -44,7 +49,10 @@ export async function handler(req: Request): Promise<Response> {
   async function groupGet(path: string) {
     const response = await fetch("https://api.groupme.com/v3" + path, { headers: { "X-Access-Token": token }, signal: timeout(15000) });
     if (response.status === 304) return null;
-    if (!response.ok) throw new Error("GroupMe could not be reached. Check the saved token and group access.");
+    if (!response.ok) {
+      const check = path === "/users/me" ? "token" : "group access";
+      throw new Error(`GroupMe ${check} check failed (HTTP ${response.status}). ${check === "token" ? "Check GROUPME_TOKEN: use the access token from the GroupMe developer site." : "Check GROUPME_GROUP_ID and make sure the token owner belongs to that group."}`);
+    }
     return (await response.json()).response;
   }
   async function messages(params: Record<string, string>): Promise<Message[]> {
@@ -60,7 +68,12 @@ export async function handler(req: Request): Promise<Response> {
       if (error) throw new Error("Run the Stage 14 SQL before checking the reader.");
       let checked: boolean | undefined;
       if (new URL(req.url).searchParams.get("check") === "groupme") {
-        await groupGet(groupPath);
+        await groupGet("/users/me");
+        try {
+          await groupGet(groupPath);
+        } catch (error) {
+          return json({ ok: false, ready: false, token_accepted: true, groupme: false, bot: Boolean(bot), message: error instanceof Error && error.message.startsWith("GroupMe ") ? error.message : "GroupMe group access could not be checked. Try again shortly." }, 503);
+        }
         checked = true;
       }
       return json({ ok: true, ready, bot: Boolean(bot), last_message_id: data?.last_id || null, read_count: data?.read_count || 0, ...(checked ? { groupme: true, message: "The token and group access work." } : {}) });

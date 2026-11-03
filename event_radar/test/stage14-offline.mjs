@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { stripTypeScriptTypes } from 'node:module';
 const env = { GROUPME_TOKEN:'test', GROUPME_GROUP_ID:'test', GROUPME_BOT_ID:'test', SUPABASE_URL:'https://test.invalid', SUPABASE_SECRET_KEYS:'{"default":"test"}', SUPABASE_PUBLISHABLE_KEYS:'{"default":"public-test"}', OPENAI_API_KEY:'test' };
 globalThis.Deno={env:{get:key=>env[key]}};
-let cursor={last_id:null,read_count:0,updated_at:new Date().toISOString()}, bookmarks=[], batch=[], calls=[], failed=false;
+let cursor={last_id:null,read_count:0,updated_at:new Date().toISOString()}, bookmarks=[], batch=[], calls=[], failed=false, tokenStatus=200, groupStatus=200;
 globalThis.mockClient=()=>({from:()=>({
  upsert:async()=>({error:null}),
  select:()=>({eq:()=>({maybeSingle:async()=>({data:cursor,error:null})})}),
@@ -19,6 +19,8 @@ globalThis.mockClient=()=>({from:()=>({
 function response(value,status=200){return new Response(JSON.stringify(value),{status});}
 globalThis.fetch=async(url,init={})=>{
  calls.push({url,init});
+ if(url.endsWith('/users/me')) return response({response:{}},tokenStatus);
+ if(url.endsWith('/groups/test')) return response({response:{}},groupStatus);
  if(url.includes('/bots/post')) return new Response(null,{status:202});
  if(url.includes('/submit-event')) return failed ? response({ok:false},503) : response({ok:true,status:'published',message:'Published',reasons:[]});
  if(url.includes('limit=1')&&!url.includes('100')) return response({response:{messages:[{id:'10',created_at:1000}]}});
@@ -31,6 +33,15 @@ async function load(path){
  return import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(text)).toString('base64'));
 }
 const reader=await load('event_radar/supabase/functions/read-channel/index.ts');
+const check=()=>reader.handler(new Request('https://test.invalid?check=groupme'));
+let diagnostic=await(await check()).json();
+assert.equal(diagnostic.groupme.token_works,true);assert.equal(diagnostic.groupme.group_found,true);
+assert.equal(diagnostic.last_run,cursor.updated_at);
+tokenStatus=401;diagnostic=await(await check()).json();
+assert.equal(diagnostic.groupme.token_works,false);assert.equal(diagnostic.groupme.group_found,false);
+tokenStatus=200;groupStatus=404;diagnostic=await(await check()).json();
+assert.equal(diagnostic.groupme.token_works,true);assert.equal(diagnostic.groupme.group_found,false);
+groupStatus=200;
 const post=()=>reader.handler(new Request('https://test.invalid',{method:'POST'}));
 assert.equal((await(await post()).json()).initialized,true);
 assert.equal(cursor.last_id,'10');assert.equal(calls.filter(c=>c.url.includes('/submit-event')).length,0);
@@ -52,4 +63,4 @@ const agent=await load('event_radar/supabase/functions/submit-event/index.ts');
 const before=calls.length;
 const result=await agent.handler(new Request('https://test.invalid',{method:'POST',headers:{'content-type':'application/json',apikey:'public-test'},body:JSON.stringify({announcement:'event',source:'groupme',source_id:'12',thread:['earlier']})}));
 assert.equal((await result.json()).already_read,true);assert.equal(reads,1);assert.equal(calls.length,before);
-console.log('PASS: TypeScript parsing, first-run bookmark, chronological processing, bot/system skips, context bounds, failure retry, and duplicate check before AI. No network used.');
+console.log('PASS: TypeScript parsing, builder-compatible token/group diagnostics, first-run bookmark, chronological processing, bot/system skips, context bounds, failure retry, and duplicate check before AI. No network used.');

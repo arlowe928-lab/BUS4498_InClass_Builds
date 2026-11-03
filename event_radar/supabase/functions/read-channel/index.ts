@@ -64,19 +64,23 @@ export async function handler(req: Request): Promise<Response> {
   let lease = "";
   try {
     if (req.method === "GET") {
-      const { data, error } = await db.from("channel_cursor").select("last_id,read_count").eq("source", SOURCE).maybeSingle();
+      const { data, error } = await db.from("channel_cursor").select("last_id,read_count,updated_at").eq("source", SOURCE).maybeSingle();
       if (error) throw new Error("Run the Stage 14 SQL before checking the reader.");
-      let checked: boolean | undefined;
+      let checked: { token_works: boolean; group_found: boolean; message: string } | undefined;
       if (new URL(req.url).searchParams.get("check") === "groupme") {
-        await groupGet("/users/me");
+        checked = { token_works: false, group_found: false, message: "" };
         try {
+          await groupGet("/users/me");
+          checked.token_works = true;
           await groupGet(groupPath);
+          checked.group_found = true;
+          checked.message = "The token and group access work.";
         } catch (error) {
-          return json({ ok: false, ready: false, token_accepted: true, groupme: false, bot: Boolean(bot), message: error instanceof Error && error.message.startsWith("GroupMe ") ? error.message : "GroupMe group access could not be checked. Try again shortly." }, 503);
+          checked.message = error instanceof Error && error.message.startsWith("GroupMe ") ? error.message : "GroupMe could not be checked. Try again shortly.";
         }
-        checked = true;
       }
-      return json({ ok: true, ready, bot: Boolean(bot), last_message_id: data?.last_id || null, read_count: data?.read_count || 0, ...(checked ? { groupme: true, message: "The token and group access work." } : {}) });
+      // The builder reads these named results; a boolean would look like a rejected token.
+      return json({ ok: true, ready, bot: Boolean(bot), last_message_id: data?.last_id || null, read_count: data?.read_count || 0, last_run: data?.updated_at || "", ...(checked ? { groupme: checked, message: checked.message } : {}) });
     }
     // The callback body is never trusted or forwarded. A callback only wakes
     // this reader, which reads the configured group through GroupMe's API.

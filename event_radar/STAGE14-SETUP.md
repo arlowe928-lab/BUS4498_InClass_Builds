@@ -1,6 +1,6 @@
 # Stage 14: GroupMe setup
 
-The files are ready for manual installation. No live database change or deployment was made for this request. Keep your existing GroupMe secrets in Supabase; do not paste their values into files or chat.
+Deployment status (November 2, 2026): applied the Stage 14 SQL through the Supabase connection and deployed both `submit-event` and `read-channel` with JWT verification off. Applied the previously prepared Stage 11 SQL as a prerequisite for the current agent. Read-only checks confirmed six active clubs, GroupMe token acceptance and group access, a configured bot, an existing bookmark, and an active `read-chat-channel` job every minute; a scheduled reader run returned HTTP 200. No test posts were sent, and no commit or push was made. Keep your existing GroupMe secrets in Supabase; do not paste their values into files or chat. The steps below are retained for future manual setup.
 
 ## 1. Apply the SQL
 

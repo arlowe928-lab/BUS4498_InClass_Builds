@@ -250,19 +250,29 @@
     var stamp = { reviewed_at: new Date().toISOString(), reviewed_by: session.user.email };
     db.from("events")
       .update({ status: status, reviewed_at: stamp.reviewed_at, reviewed_by: stamp.reviewed_by })
-      .eq("id", ev.id)
+      .eq("id", ev.id).eq("status", "waiting").select("id").single()
       .then(function (res) {
-        if (res.error) { $("waitingStatus").textContent = "Couldn't save that: " + res.error.message; return; }
-        // Approving an update retires the post it replaces, so the website never shows both.
+        if (res.error) throw new Error(res.error.message);
         if (status === "published" && ev.updates_id) {
           return db.from("events")
             .update({ status: "replaced", status_reason: "Replaced by a newer post the moderator approved.", reviewed_at: stamp.reviewed_at, reviewed_by: stamp.reviewed_by })
-            .eq("id", ev.updates_id).in("status", ["published", "waiting"]);
+            .eq("id", ev.updates_id).in("status", ["published", "waiting"])
+            .then(function (retired) {
+              if (!retired.error) return;
+              // Keep the original visible and make the update reviewable again.
+              return db.from("events").update({ status: "waiting", status_reason: "Approval could not retire the earlier post. Please retry." })
+                .eq("id", ev.id).eq("status", "published").then(function (rollback) {
+                  throw new Error(rollback.error ? "The update was published but the earlier post could not be retired. Refresh and review both posts." : "The earlier post could not be retired. The update is waiting again; please retry.");
+                });
+            });
         }
       })
       .then(function () {
         toast(status === "published" ? "Approved and posted" : "Rejected");
-        loadWaiting();
+        loadWaiting(); loadBoard(true);
+      })
+      .catch(function (error) {
+        $("waitingStatus").textContent = "Couldn't finish that review: " + error.message;
         loadBoard(true);
       });
   }

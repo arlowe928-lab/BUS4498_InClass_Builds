@@ -36,3 +36,13 @@
 **What I approved and rejected:** (not answered)
 
 **The hand-off:** (not answered)
+
+
+## Stage 12 — November 2, 2026
+
+Applied club_history and deployed submit-event version 22 with JWT verification off.
+Offline checks cover history copying, new-event isolation, reminder duplicates, same-key edits, waiting updates, different-day guards, and bounded chat context; Stage 14 regression checks also pass.
+Live checks confirmed: original publishes; time change copies place and replaces original; reminder is duplicate; a new event with no place waits; chat follow-up updates the matching event; same-time correction edits in place; a flagged update waits and preserves the original.
+Only labeled validation posts were archived after testing. The website approval flow was checked in code, not exercised through a signed-in browser.
+Manual check: send E, F, G from week10-announcements.md with future dates: one published card at 7 PM after F; G says Already posted. Approve a waiting time-change update: the earlier card should disappear only after approval.
+No commit or push performed.

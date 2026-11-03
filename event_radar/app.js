@@ -302,7 +302,10 @@
           approve.type = reject.type = "button";
           function decideThen(status) {
             var lesson = teachInput.value.trim();
-            if (lesson) { saveLesson(lesson, ev.id).then(function () { review(ev, status); }); return; }
+            if (lesson) { saveLesson(lesson, ev.id).then(function (saved) {
+              if (saved) review(ev, status);
+              else $("waitingStatus").textContent = "The lesson wasn’t saved, so this post is still waiting. Check the Lessons tab and retry.";
+            }); return; }
             review(ev, status);
           }
           approve.addEventListener("click", function () { decideThen("published"); });
@@ -348,11 +351,19 @@
 
   /* ---------- lessons: what moderators teach the agent ---------- */
   function saveLesson(text, fromPost) {
-    return db.from("lessons").insert({ lesson: text.slice(0, 300), created_by: session.user.email, from_post: fromPost || null })
+    text = text.trim();
+    if (!session || text.length < 5 || text.length > 300) {
+      $("teachMsg").textContent = "Sign in as a moderator and enter a lesson between 5 and 300 characters.";
+      return Promise.resolve(false);
+    }
+    return db.from("lessons").insert({ lesson: text, created_by: session.user.email, from_post: fromPost || null })
       .then(function (res) {
-        $("teachMsg").textContent = res.error ? "Couldn't save the lesson: " + res.error.message : "Saved. The agent reads it with the next post.";
-        if (!res.error) toast("Lesson saved");
-        loadLessons();
+        if (res.error) { $("teachMsg").textContent = "Couldn't save the lesson: " + res.error.message; return false; }
+        $("teachMsg").textContent = "Saved. The agent reads it with the next post.";
+        toast("Lesson saved"); loadLessons(); return true;
+      }).catch(function () {
+        $("teachMsg").textContent = "Couldn't reach Supabase. The lesson wasn't saved; please retry.";
+        return false;
       });
   }
   function loadLessons() {
@@ -393,7 +404,7 @@
     e.preventDefault();
     var text = $("lessonText").value.trim();
     if (!text) return;
-    saveLesson(text, null).then(function () { $("lessonText").value = ""; });
+    saveLesson(text, null).then(function (saved) { if (saved) $("lessonText").value = ""; });
   });
 
   loadBoard(false);

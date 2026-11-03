@@ -99,8 +99,8 @@
       <section class="tabpanel" data-panel="lessons" hidden>
         <p class="muted">The agent reads every lesson that is switched on, with every post. Switch one off to make it forget.</p>
         <form id="teachForm" class="teach">
-          <label for="lessonText">Teach the agent something <span class="hint">One sentence. A lesson can make a post wait or shape the card. It can’t cancel a posting rule.</span></label>
-          <textarea id="lessonText" rows="2" maxlength="300" required placeholder="Drop-in study hours, tutoring, and office hours aren’t events for this website. Hold them for a moderator."></textarea>
+          <label for="lessonText">Teach the agent something <span class="hint">One sentence. A lesson can make a post wait for review. It can’t cancel a posting rule or turn a non-event into an event.</span></label>
+          <textarea id="lessonText" rows="2" minlength="5" maxlength="300" required placeholder="Drop-in study hours, tutoring, and office hours aren’t events for this website. Hold them for a moderator."></textarea>
           <button type="submit" id="teachBtn">Save the lesson</button>
           <p id="teachMsg" class="muted" role="status"></p>
         </form>

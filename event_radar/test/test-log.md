@@ -46,3 +46,14 @@ Live checks confirmed: original publishes; time change copies place and replaces
 Only labeled validation posts were archived after testing. The website approval flow was checked in code, not exercised through a signed-in browser.
 Manual check: send E, F, G from week10-announcements.md with future dates: one published card at 7 PM after F; G says Already posted. Approve a waiting time-change update: the earlier card should disappear only after approval.
 No commit or push performed.
+
+
+## Stage 13 — November 2, 2026
+
+Applied lessons migration; deployed submit-event version 23 with JWT verification off.
+Verified RLS enabled; visitors cannot read or insert lessons; authenticated moderators can insert lesson text and toggle active, but cannot edit saved text or delete lessons. Public sign-ups and anonymous sign-in are disabled.
+Live H/I/J/K checks: study hours publish without a lesson; a scoped moderator lesson holds tutoring and appears in lessons_used/agent_notes; an instruction-like announcement waits and creates no lesson; disabling the lesson restores publication. An unsigned REST insert returned HTTP 401. Moderator insert and toggle were exercised using the authenticated database role, not a signed-in browser session.
+The temporary test lesson was removed and only labeled validation events were archived afterward.
+Offline Stage 13 tests cover valid lesson references, holds instead of rejections, independent event classification, forged lesson flags, and instruction detection. Stage 12 and Stage 14 regressions pass; app.js syntax and git diff checks pass.
+Manual website check after upload: Moderator → Lessons → save the study-hours lesson; I waits and cites it; J waits without adding a lesson; switch the lesson off and K publishes (use future dates). Optional inline lessons must save successfully before Approve/Reject proceeds.
+No commit or push performed.
